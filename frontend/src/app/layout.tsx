@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { UserProvider } from "@/lib/user-context";
 import { Navbar } from "@/components/layout/Navbar";
-import { UserAuthModal } from "@/components/auth/UserAuthModal";
+// UserAuthModal removed (Google OAuth)
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
@@ -25,7 +25,6 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
         <UserProvider>
           <Navbar />
-          <UserAuthModal />
           <main className="flex-1">{children}</main>
           <Footer />
         </UserProvider>

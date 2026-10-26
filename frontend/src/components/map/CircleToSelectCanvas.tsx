@@ -13,27 +13,54 @@ interface CircleToSelectCanvasProps {
   locale: "en" | "bn";
   onCompleteDrawing: (points: Point[]) => void;
   onCancel: () => void;
+  onWheelZoom?: (delta: number) => void;
 }
 
 export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
   isActive,
   locale,
   onCompleteDrawing,
+  onWheelZoom,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const pointsRef = useRef<Point[]>([]);
 
-  // Synchronize canvas dimensions
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const sync = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(canvas);
+    window.addEventListener("resize", sync);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+    };
   }, [isActive]);
+
+  // Non-passive wheel zoom (React's onWheel is passive by default in some browsers)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isActive) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      if (onWheelZoom) onWheelZoom(e.deltaY < 0 ? 1 : -1);
+    };
+    canvas.addEventListener("wheel", handler, { passive: false });
+    return () => canvas.removeEventListener("wheel", handler);
+  }, [isActive, onWheelZoom]);
 
   const drawTrace = () => {
     const canvas = canvasRef.current;
@@ -46,16 +73,15 @@ export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Glowing Laser Ribbon Gradient (Google Circle-to-Search Signature Glow)
     const gradient = ctx.createLinearGradient(
       points[0].x,
       points[0].y,
       points[points.length - 1].x,
       points[points.length - 1].y
     );
-    gradient.addColorStop(0, "#10b981"); // Emerald
-    gradient.addColorStop(0.5, "#06b6d4"); // Cyan
-    gradient.addColorStop(1, "#8b5cf6"); // Violet
+    gradient.addColorStop(0, "#10b981");
+    gradient.addColorStop(0.5, "#06b6d4");
+    gradient.addColorStop(1, "#8b5cf6");
 
     ctx.save();
     ctx.lineCap = "round";
@@ -75,17 +101,16 @@ export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
     }
 
     ctx.stroke();
-
-    // Subtle glowing fill
     ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
     ctx.fill();
     ctx.restore();
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+    const y = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
 
     setIsDrawing(true);
     pointsRef.current = [{ x, y }];
@@ -93,16 +118,18 @@ export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") return;
     if (!isDrawing) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+    const y = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
 
     pointsRef.current.push({ x, y });
     drawTrace();
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") return;
     if (!isDrawing) return;
     setIsDrawing(false);
     if ((e.target as Element).hasPointerCapture?.(e.pointerId)) {
@@ -114,7 +141,6 @@ export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
       onCompleteDrawing(points);
     }
 
-    // Clear canvas
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
@@ -126,28 +152,27 @@ export const CircleToSelectCanvas: React.FC<CircleToSelectCanvasProps> = ({
   if (!isActive) return null;
 
   return (
-    <div className="absolute inset-0 z-[1500] cursor-crosshair">
+    <div
+      className={`absolute inset-0 z-[1500] ${isDrawing ? "cursor-crosshair" : "cursor-grab"}`}
+    >
       <canvas
         ref={canvasRef}
-        className="w-full h-full touch-none"
+        className="w-full h-full touch-auto"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       />
 
-      {/* Google-style Drawing HUD Badge */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-950/90 text-white backdrop-blur-md px-4 py-2 rounded-full border border-emerald-500/50 shadow-2xl flex items-center gap-2 pointer-events-none animate-bounce">
-        <Wand2 className="w-4 h-4 text-emerald-400 animate-spin" />
-        <span className="text-xs font-bold text-emerald-300">
-          {isDrawing
-            ? locale === "bn"
-              ? "মাউস ছেড়ে দিন ক্ষেত্রফল অটো-ডিটেক্ট করতে..."
-              : "Release mouse to auto-detect field area..."
-            : locale === "bn"
-            ? "মাউস দিয়ে যে কোনো জমির চারপাশে গোল করে বৃত্ত আঁকুন"
-            : "Draw a circle around any farm plot with your mouse"}
-        </span>
-      </div>
+      {isDrawing && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-950/90 text-white backdrop-blur-md px-4 py-2 rounded-full border border-emerald-500/50 shadow-2xl flex items-center gap-2 pointer-events-none">
+          <Wand2 className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs font-bold text-emerald-300">
+            {locale === "bn"
+              ? "মাউস ছেড়ে দিন ক্ষেত্রফল অটো-ডিটেক্ট করতে..."
+              : "Release mouse to auto-detect field area..."}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

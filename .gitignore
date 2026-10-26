@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env*.local
+.env
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+ml-service/.venv/
+ml-service/__pycache__/
+*.pyc
+
+# FUSE
+.fuse_hidden*
+
+# AGENT files as per AGENT.md
+AGENT.md
+AGENTS/

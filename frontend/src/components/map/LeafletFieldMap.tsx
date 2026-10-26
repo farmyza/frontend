@@ -23,9 +23,11 @@ interface LeafletFieldMapProps {
   mapMode: "satellite" | "streets" | "terrain";
   zoom: number;
   locale: "en" | "bn";
+  className?: string;
   onPolygonChange: (newCoordinates: Array<[number, number]>, calculatedArea: number) => void;
   onCenterChange?: (lat: number, lng: number) => void;
   onRadiusChange?: (newRadius: number) => void;
+  onZoomChange?: (zoom: number) => void;
 }
 
 export const LeafletFieldMap: React.FC<LeafletFieldMapProps> = ({
@@ -39,11 +41,15 @@ export const LeafletFieldMap: React.FC<LeafletFieldMapProps> = ({
   mapMode,
   zoom,
   locale,
+  className,
   onPolygonChange,
   onCenterChange,
   onRadiusChange,
+  onZoomChange,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const polygonLayerRef = useRef<L.Polygon | null>(null);
@@ -70,7 +76,11 @@ export const LeafletFieldMap: React.FC<LeafletFieldMapProps> = ({
 
     mapInstanceRef.current = map;
 
+    const handleZoomEnd = () => onZoomChangeRef.current?.(map.getZoom());
+    map.on("zoomend", handleZoomEnd);
+
     return () => {
+      map.off("zoomend", handleZoomEnd);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -269,13 +279,20 @@ export const LeafletFieldMap: React.FC<LeafletFieldMapProps> = ({
   }, [coordinates, centerLat, centerLng, isEditMode, shapeMode, radiusMeters, fieldName]);
 
   return (
-    <div className="relative w-full h-80 sm:h-96 overflow-hidden rounded-b-none">
+    <div className={`relative w-full overflow-hidden rounded-b-none ${className ?? "h-80 sm:h-96"}`}>
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       <CircleToSelectCanvas
         isActive={shapeMode === "draw_circle"}
         locale={locale}
         onCompleteDrawing={handleCompleteFreehandDraw}
         onCancel={() => {}}
+        onWheelZoom={(delta) => {
+          const map = mapInstanceRef.current;
+          if (!map) return;
+          const next = Math.min(18, Math.max(3, map.getZoom() + delta));
+          map.setZoom(next);
+          onZoomChangeRef.current?.(next);
+        }}
       />
     </div>
   );

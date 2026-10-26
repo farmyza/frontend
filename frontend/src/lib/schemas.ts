@@ -239,23 +239,30 @@ export const DiagnosticResponseSchema = z.object({
 
 export type DiagnosticResponse = z.infer<typeof DiagnosticResponseSchema>;
 
-export const AssistantRequestSchema = z.object({
-  message: z.string().min(1),
-  locale: z.enum(["en", "bn"]).default("en"),
-  context: z.object({
-    fieldOverview: z.any().optional(),
-    diagnostics: z.any().optional(),
-    recommendations: z.any().optional(),
+export const PredictCropRequestSchema = z.object({
+  location: z.object({
+    lat: z.number(),
+    lon: z.number(),
   }),
+  historical_data: z.array(z.array(z.number()).length(5)).length(12),
 });
 
-export type AssistantRequest = z.infer<typeof AssistantRequestSchema>;
+export type PredictCropRequest = z.infer<typeof PredictCropRequestSchema>;
 
-export const AssistantResponseSchema = z.object({
-  replyEn: z.string(),
-  replyBn: z.string(),
-  suggestedFollowUps: z.array(z.string()),
-  referencedFactors: z.array(z.string()),
+export const PredictCropResponseSchema = z.object({
+  status: z.string(),
+  forecast: z.object({
+    t2m_max_predicted: z.number(),
+    prectotcorr_predicted: z.number(),
+    rh2m_predicted: z.number(),
+    gwetroot_predicted: z.number(),
+    t2m_min_predicted: z.number(),
+  }),
+  recommended_crop: z.string(),
+  adaptation_reason: z.string(),
 });
 
-export type AssistantResponse = z.infer<typeof AssistantResponseSchema>;
+export type PredictCropResponse = z.infer<typeof PredictCropResponseSchema>;
+
+export * from "./assistant-schemas";
+export * from "./auth-schemas";

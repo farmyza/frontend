@@ -29,7 +29,6 @@ export interface UserProject {
 const dbPath = path.resolve(process.cwd(), "farmyza.db");
 const db = new Database(dbPath);
 
-// Initialize Tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -57,7 +56,6 @@ db.exec(`
   );
 `);
 
-// Seed Default User Accounts
 const seedUsers = [
   {
     id: "user_rafiq",
@@ -237,3 +235,5 @@ export function deleteUserProject(projectId: string, userId: string): boolean {
   const info = db.prepare("DELETE FROM projects WHERE id = ? AND user_id = ?").run(projectId, userId);
   return info.changes > 0;
 }
+
+export { db };

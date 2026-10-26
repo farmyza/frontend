@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 
 export const Navbar: React.FC = () => {
-  const { activeUser, locale, setLocale, setIsUserModalOpen, projectCount } = useUser();
+  const { activeUser, isDemoMode, locale, setLocale, projectCount, signIn, signOut, isLoading } = useUser();
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // mobile menu removed
 
   const isProjects = pathname === "/" || pathname === "/projects";
-  const isNew = pathname === "/projects/new";
+  const isNew = pathname === "/new";
   const isSolution = pathname.startsWith("/projects/") && pathname !== "/projects/new";
 
   return (
@@ -47,55 +47,54 @@ export const Navbar: React.FC = () => {
           </div>
         </Link>
 
-        {/* Center Desktop Navigation Tabs */}
-        <nav className="hidden md:flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 text-xs font-bold">
-          <Link
-            href="/projects"
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all ${
-              isProjects
-                ? "bg-white text-slate-900 shadow-xs font-extrabold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <FolderOpen className="w-4 h-4 text-emerald-600" />
-            <span>{locale === "bn" ? "আমার প্রজেক্টসমূহ" : "My Projects"}</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono">
-              {projectCount}
-            </span>
-          </Link>
-
-          <Link
-            href="/projects/new"
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all ${
-              isNew
-                ? "bg-white text-slate-900 shadow-xs font-extrabold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <PlusCircle className="w-4 h-4 text-emerald-600" />
-            <span>{locale === "bn" ? "+ নতুন প্রজেক্ট" : "+ New Project"}</span>
-          </Link>
-
+        {/* Center: only active solution badge if applicable */}
+        <div className="hidden md:flex items-center gap-1.5">
           {isSolution && (
-            <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white shadow-xs font-extrabold">
+            <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white shadow-xs font-extrabold text-xs">
               <Sparkles className="w-4 h-4" />
-              <span>{locale === "bn" ? "সক্রিয় সমাধান" : "Active Solution"}</span>
+              <span>{locale === "bn" ? "সক্রিয় সমাধান" : "Active Solution"}</span>
             </span>
           )}
-        </nav>
+        </div>
 
         {/* Right User Profile & Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* User Account Switcher Button */}
-          <button
-            onClick={() => setIsUserModalOpen(true)}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 transition-all active:scale-95 text-xs font-bold cursor-pointer"
-            title="Switch User Profile"
-          >
-            <span className="text-base">{activeUser.avatar || "👤"}</span>
-            <span className="hidden sm:inline truncate max-w-[110px]">{activeUser.name.split(" ")[0]}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
+          {isDemoMode && (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+              {locale === "bn" ? "ডেমো মোড" : "Demo mode"}
+            </span>
+          )}
+
+          {activeUser ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold">
+                {activeUser.avatar ? (
+                  <img src={activeUser.avatar} alt="" className="w-6 h-6 rounded-full" />
+                ) : (
+                  <span className="text-base">👤</span>
+                )}
+                <span className="hidden sm:inline truncate max-w-[110px]">{activeUser.name.split(" ")[0]}</span>
+              </div>
+              {!isDemoMode && (
+                <button
+                  onClick={() => signOut()}
+                  className="px-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700"
+                >
+                  {locale === "bn" ? "সাইন আউট" : "Sign out"}
+                </button>
+              )}
+            </div>
+          ) : (
+            !isDemoMode && (
+              <button
+                onClick={() => signIn()}
+                disabled={isLoading}
+                className="px-3 py-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+              >
+                {locale === "bn" ? "Google দিয়ে সাইন ইন" : "Sign in with Google"}
+              </button>
+            )
+          )}
 
           {/* Language Toggle */}
           <button
@@ -107,61 +106,9 @@ export const Navbar: React.FC = () => {
             <span>{locale === "en" ? "বাংলা" : "EN"}</span>
           </button>
 
-          {/* Mobile Hamburger Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-100"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden p-4 bg-white border-b border-slate-200 flex flex-col gap-2.5 animate-fadeIn">
-          <Link
-            href="/projects"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center justify-between ${
-              isProjects ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50 text-slate-800"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-emerald-600" />
-              <span>{locale === "bn" ? "আমার প্রজেক্টসমূহ" : "My Projects"}</span>
-            </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono">
-              {projectCount}
-            </span>
-          </Link>
-
-          <Link
-            href="/projects/new"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center gap-2 ${
-              isNew ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50 text-slate-800"
-            }`}
-          >
-            <PlusCircle className="w-4 h-4 text-emerald-600" />
-            <span>{locale === "bn" ? "+ নতুন প্রজেক্ট তৈরি করুন" : "+ Create New Project"}</span>
-          </Link>
-
-          <button
-            onClick={() => {
-              setIsUserModalOpen(true);
-              setMobileMenuOpen(false);
-            }}
-            className="w-full p-3 rounded-2xl bg-slate-100 text-left font-bold text-xs text-slate-800 flex items-center justify-between"
-          >
-            <span className="flex items-center gap-2">
-              <span className="text-base">{activeUser.avatar}</span>
-              <span>{activeUser.name}</span>
-            </span>
-            <span className="text-[11px] text-emerald-700 font-medium">Switch User</span>
-          </button>
-        </div>
-      )}
-    </header>
+</header>
   );
 };

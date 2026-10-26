@@ -4,6 +4,7 @@ import React from "react";
 import { UserProject } from "@/lib/db";
 import {
   FolderPlus,
+  Plus,
   Trash2,
   ArrowRight,
   Sprout,
@@ -76,8 +77,8 @@ export const ProjectsDashboard: React.FC<ProjectsDashboardProps> = ({
         {projects.length === 0 ? (
           /* Empty State */
           <div className="p-12 text-center rounded-3xl bg-white border border-dashed border-slate-300 flex flex-col items-center justify-center gap-4 shadow-xs">
-            <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
-              <Sprout className="w-8 h-8 stroke-[2.2]" />
+            <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
+              <Plus className="w-10 h-10 stroke-[2.2]" />
             </div>
             <div>
               <h4 className="font-extrabold text-base text-slate-800">
